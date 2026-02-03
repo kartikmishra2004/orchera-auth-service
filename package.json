@@ -1,0 +1,38 @@
+{
+    "name": "orchera-auth-service",
+    "version": "1.0.0",
+    "description": "JWT Authentication Microservice for Orchera Platform.",
+    "main": "src/server.js",
+    "type": "module",
+    "scripts": {
+        "start": "node src/server.js",
+        "dev": "node --watch src/server.js",
+        "docker:build": "docker build -t auth-service .",
+        "docker:run": "docker-compose up -d"
+    },
+    "keywords": [
+        "auth",
+        "jwt",
+        "microservice",
+        "orchera",
+        "authentication",
+        "nodejs",
+        "express"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "express": "^4.18.2",
+        "mongoose": "^8.0.3",
+        "bcryptjs": "^2.4.3",
+        "jsonwebtoken": "^9.0.2",
+        "dotenv": "^16.3.1",
+        "express-rate-limit": "^7.1.5",
+        "helmet": "^7.1.0",
+        "cors": "^2.8.5",
+        "express-mongo-sanitize": "^2.2.0",
+        "express-validator": "^7.0.1",
+        "morgan": "^1.10.0",
+        "compression": "^1.7.4"
+    }
+}
