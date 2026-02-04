@@ -1,15 +1,11 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
+import dotenv from 'dotenv/config';
 
 const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT, 10) || 5000,
 
   mongodb: {
-    uri: process.env.NODE_ENV === 'production'
-      ? process.env.MONGODB_URI
-      : process.env.MONGODB_URI_LOCAL || 'mongodb://localhost:27017/orchera-auth-service',
+    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/orchera-auth-service',
     options: {
       maxPoolSize: 10,
       minPoolSize: 2,
