@@ -1,6 +1,7 @@
 import User from '../models/user.model.js';
 import { generateTokens, verifyRefreshToken } from '../utils/jwt.util.js';
 import { ApiError, catchAsync, sendSuccessResponse } from '../utils/error.util.js';
+import config from '../config/config.js';
 
 /**
  * Register a new user
@@ -30,13 +31,15 @@ export const register = catchAsync(async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    // Set refresh token in httpOnly cookie
+    res.cookie('refreshToken', refreshToken, config.cookieOptions);
+
     // Send response
     sendSuccessResponse(
         res,
         {
             user: user.toPublicJSON(),
             accessToken,
-            refreshToken
         },
         'User registered successfully',
         201
@@ -71,11 +74,13 @@ export const login = catchAsync(async (req, res) => {
     user.refreshToken = refreshToken;
     await user.save();
 
+    // Set refresh token in httpOnly cookie
+    res.cookie('refreshToken', refreshToken, config.cookieOptions);
+
     // Send response
     sendSuccessResponse(res, {
         user: user.toPublicJSON(),
         accessToken,
-        refreshToken
     }, 'Login successful');
 });
 
@@ -84,16 +89,17 @@ export const login = catchAsync(async (req, res) => {
  * @route POST /api/auth/refresh-token
  */
 export const refreshToken = catchAsync(async (req, res) => {
-    const { refreshToken } = req.body;
+    // Read refresh token from httpOnly cookie
+    const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
-        throw new ApiError(400, 'Refresh token is required');
+        throw new ApiError(401, 'Refresh token not found');
     }
 
     // Verify refresh token
     const decoded = verifyRefreshToken(refreshToken);
 
-    // Find user and check if refresh token matches
+    // Find user and validate refresh token
     const user = await User.findById(decoded.userId).select('+refreshToken');
 
     if (!user) {
@@ -101,21 +107,25 @@ export const refreshToken = catchAsync(async (req, res) => {
     }
 
     if (user.refreshToken !== refreshToken) {
-        throw new ApiError(401, 'Invalid refresh token');
+        throw new ApiError(403, 'Invalid refresh token');
     }
 
     // Generate new tokens
     const tokens = generateTokens(user);
 
-    // Update refresh token in database
+    // Save new refresh token
     user.refreshToken = tokens.refreshToken;
     await user.save();
 
-    // Send response
-    sendSuccessResponse(res, {
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken
-    }, 'Token refreshed successfully');
+    // Update refresh token cookie
+    res.cookie('refreshToken', tokens.refreshToken, config.cookieOptions);
+
+    // Send new access token
+    sendSuccessResponse(
+        res,
+        { accessToken: tokens.accessToken },
+        'Token refreshed successfully'
+    );
 });
 
 /**

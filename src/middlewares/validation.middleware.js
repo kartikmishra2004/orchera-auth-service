@@ -60,16 +60,6 @@ export const loginValidation = [
 ];
 
 /**
- * Validation rules for refresh token
- */
-export const refreshTokenValidation = [
-    body('refreshToken')
-        .notEmpty().withMessage('Refresh token is required'),
-
-    handleValidationErrors
-];
-
-/**
  * Validation rules for updating user profile
  */
 export const updateProfileValidation = [

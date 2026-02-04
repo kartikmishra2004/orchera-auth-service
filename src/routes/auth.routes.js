@@ -13,7 +13,6 @@ import { authenticate } from '../middlewares/auth.middleware.js';
 import {
     registerValidation,
     loginValidation,
-    refreshTokenValidation,
     updateProfileValidation,
     changePasswordValidation
 } from '../middlewares/validation.middleware.js';
@@ -24,7 +23,7 @@ const router = express.Router();
 // Public routes
 router.post('/register', authLimiter, registerValidation, register);
 router.post('/login', authLimiter, loginValidation, login);
-router.post('/refresh-token', refreshTokenValidation, refreshToken);
+router.get('/refresh-token', refreshToken);
 
 // Protected routes
 router.use(authenticate); // All routes below this require authentication

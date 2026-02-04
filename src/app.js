@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import mongoSanitize from 'express-mongo-sanitize';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import config from './config/config.js';
 import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
@@ -31,6 +32,7 @@ app.use(cors(config.cors));
 
 // Body parser middleware
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Data sanitization against NoSQL injection
