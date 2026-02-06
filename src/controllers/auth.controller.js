@@ -123,7 +123,7 @@ export const refreshToken = catchAsync(async (req, res) => {
     // Send new access token
     sendSuccessResponse(
         res,
-        { accessToken: tokens.accessToken },
+        { accessToken: tokens.accessToken, user: user.toPublicJSON() },
         'Token refreshed successfully'
     );
 });
