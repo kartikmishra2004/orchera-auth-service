@@ -24,11 +24,11 @@ const router = express.Router();
 router.post('/register', authLimiter, registerValidation, register);
 router.post('/login', authLimiter, loginValidation, login);
 router.get('/refresh-token', refreshToken);
+router.post('/logout', logout);
 
 // Protected routes
 router.use(authenticate); // All routes below this require authentication
 
-router.post('/logout', logout);
 router.get('/me', getCurrentUser);
 router.patch('/profile', updateProfileValidation, updateProfile);
 router.post('/change-password', passwordLimiter, changePasswordValidation, changePassword);
