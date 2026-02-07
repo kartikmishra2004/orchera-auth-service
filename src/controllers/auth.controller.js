@@ -140,6 +140,8 @@ export const logout = catchAsync(async (req, res) => {
         $unset: { refreshToken: 1 }
     });
 
+    res.clearCookie("refreshToken", config.cookieOptions);
+
     sendSuccessResponse(res, null, 'Logout successful');
 });
 
