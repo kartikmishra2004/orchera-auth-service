@@ -133,12 +133,14 @@ export const refreshToken = catchAsync(async (req, res) => {
  * @route POST /api/auth/logout
  */
 export const logout = catchAsync(async (req, res) => {
-    const userId = req.userId;
+    const refreshToken = req.cookies.refreshToken;
 
-    // Clear refresh token from database
-    await User.findByIdAndUpdate(userId, {
-        $unset: { refreshToken: 1 }
-    });
+    if (refreshToken) {
+        await User.findOneAndUpdate(
+            { refreshToken },
+            { $unset: { refreshToken: 1 } }
+        );
+    }
 
     res.clearCookie("refreshToken", config.cookieOptions);
 
