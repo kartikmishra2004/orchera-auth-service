@@ -27,8 +27,8 @@ export const register = catchAsync(async (req, res) => {
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
 
-    // Save refresh token to database
-    user.refreshToken = refreshToken;
+    // Save refresh token to database (Multiple sessions)
+    user.refreshTokens = [{ token: refreshToken }];
     await user.save();
 
     // Set refresh token in httpOnly cookie
@@ -70,8 +70,13 @@ export const login = catchAsync(async (req, res) => {
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(user);
 
-    // Save refresh token to database
-    user.refreshToken = refreshToken;
+    // Save refresh token to database (Handle multiple sessions)
+    // Limit to 5 sessions
+    const MAX_SESSIONS = 5;
+    if (user.refreshTokens.length >= MAX_SESSIONS) {
+        user.refreshTokens.shift(); // Remove oldest session
+    }
+    user.refreshTokens.push({ token: refreshToken });
     await user.save();
 
     // Set refresh token in httpOnly cookie
@@ -100,21 +105,23 @@ export const refreshToken = catchAsync(async (req, res) => {
     const decoded = verifyRefreshToken(refreshToken);
 
     // Find user and validate refresh token
-    const user = await User.findById(decoded.userId).select('+refreshToken');
+    const user = await User.findById(decoded.userId);
 
     if (!user) {
         throw new ApiError(401, 'User not found');
     }
 
-    if (user.refreshToken !== refreshToken) {
+    // Check if the refresh token exists in the user's sessions
+    const tokenIndex = user.refreshTokens.findIndex(rt => rt.token === refreshToken);
+    if (tokenIndex === -1) {
         throw new ApiError(403, 'Invalid refresh token');
     }
 
     // Generate new tokens
     const tokens = generateTokens(user);
 
-    // Save new refresh token
-    user.refreshToken = tokens.refreshToken;
+    // Rotate the refresh token: replace the old one with the new one
+    user.refreshTokens[tokenIndex] = { token: tokens.refreshToken };
     await user.save();
 
     // Update refresh token cookie
@@ -137,14 +144,36 @@ export const logout = catchAsync(async (req, res) => {
 
     if (refreshToken) {
         await User.findOneAndUpdate(
-            { refreshToken },
-            { $unset: { refreshToken: 1 } }
+            { 'refreshTokens.token': refreshToken },
+            { $pull: { refreshTokens: { token: refreshToken } } }
         );
     }
 
     res.clearCookie("refreshToken", config.cookieOptions);
 
     sendSuccessResponse(res, null, 'Logout successful');
+});
+
+/**
+ * Logout from all sessions
+ * @route POST /api/auth/logout-all
+ */
+export const logoutAll = catchAsync(async (req, res) => {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+        res.clearCookie("refreshToken", config.cookieOptions);
+        return sendSuccessResponse(res, null, "Logged out from all sessions");
+    }
+
+    await User.findOneAndUpdate(
+        { 'refreshTokens.token': refreshToken },
+        { $set: { refreshTokens: [] } }
+    );
+
+    res.clearCookie("refreshToken", config.cookieOptions);
+
+    sendSuccessResponse(res, null, 'Logged out from all sessions');
 });
 
 /**
@@ -212,8 +241,8 @@ export const changePassword = catchAsync(async (req, res) => {
     user.password = newPassword;
     await user.save();
 
-    // Clear refresh token to force re-login
-    user.refreshToken = undefined;
+    // Clear all refresh tokens to force re-login on all devices
+    user.refreshTokens = [];
     await user.save();
 
     sendSuccessResponse(res, null, 'Password changed successfully. Please login again');

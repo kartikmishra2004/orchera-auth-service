@@ -24,7 +24,7 @@ export const authenticate = async (req, res, next) => {
         const decoded = verifyAccessToken(token);
 
         // Check if user still exists
-        const user = await User.findById(decoded.userId).select('-password -refreshToken');
+        const user = await User.findById(decoded.userId).select('-password -refreshTokens');
 
         if (!user) {
             throw new ApiError(401, 'User no longer exists');
@@ -58,7 +58,7 @@ export const optionalAuthenticate = async (req, res, next) => {
 
         if (token) {
             const decoded = verifyAccessToken(token);
-            const user = await User.findById(decoded.userId).select('-password -refreshToken');
+            const user = await User.findById(decoded.userId).select('-password -refreshTokens');
 
             if (user) {
                 req.user = user;

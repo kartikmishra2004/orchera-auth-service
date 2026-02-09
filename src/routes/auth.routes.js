@@ -4,6 +4,7 @@ import {
     login,
     refreshToken,
     logout,
+    logoutAll,
     getCurrentUser,
     updateProfile,
     changePassword,
@@ -32,6 +33,7 @@ router.use(authenticate); // All routes below this require authentication
 router.get('/me', getCurrentUser);
 router.patch('/profile', updateProfileValidation, updateProfile);
 router.post('/change-password', passwordLimiter, changePasswordValidation, changePassword);
+router.post('/logout-all', logoutAll);
 router.delete('/account', deleteAccount);
 
 export default router;
