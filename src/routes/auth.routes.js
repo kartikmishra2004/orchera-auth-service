@@ -8,7 +8,8 @@ import {
     getCurrentUser,
     updateProfile,
     changePassword,
-    deleteAccount
+    deleteAccount,
+    googleAuth
 } from '../controllers/auth.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import {
@@ -24,6 +25,7 @@ const router = express.Router();
 // Public routes
 router.post('/register', authLimiter, registerValidation, register);
 router.post('/login', authLimiter, loginValidation, login);
+router.post('/google', googleAuth);
 router.get('/refresh-token', refreshToken);
 router.post('/logout', logout);
 

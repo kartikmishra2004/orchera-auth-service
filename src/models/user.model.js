@@ -18,11 +18,18 @@ const userSchema = new mongoose.Schema({
         trim: true,
         match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please provide a valid email']
     },
+    authProvider: {
+        type: String,
+        enum: ["local", "google"],
+        default: "local",
+    },
     password: {
         type: String,
-        required: [true, 'Password is required'],
         minlength: [8, 'Password must be at least 8 characters'],
-        select: false
+        select: false,
+        required: function () {
+            return this.authProvider === "local";
+        },
     },
     avatar: {
         type: String,
@@ -54,7 +61,7 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) {
         return next();
     }
 

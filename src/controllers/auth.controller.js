@@ -263,3 +263,34 @@ export const deleteAccount = catchAsync(async (req, res) => {
 
     sendSuccessResponse(res, null, 'Account deleted successfully');
 });
+
+/**
+ * Google authentication
+ * @route POST /api/auth/google
+ */
+
+export const googleAuth = catchAsync(async (req, res) => {
+    const {
+        email,
+        fullName,
+        avatar,
+        authProvider,
+    } = req.body;
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+        user = await User.create({
+            fullName: fullName,
+            email,
+            avatar: avatar || '',
+            authProvider: authProvider,
+        });
+    }
+
+    await user.save();
+
+    sendSuccessResponse(res, {
+        user: user.toPublicJSON(),
+    }, 'Login successful');
+});
