@@ -9,14 +9,16 @@ import {
     updateProfile,
     changePassword,
     deleteAccount,
-    googleAuth
+    googleAuth,
+    googleCallback
 } from '../controllers/auth.controller.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import {
     registerValidation,
     loginValidation,
     updateProfileValidation,
-    changePasswordValidation
+    changePasswordValidation,
+    googleAuthValidation,
 } from '../middlewares/validation.middleware.js';
 import { authLimiter, passwordLimiter } from '../middlewares/rateLimiter.middleware.js';
 
@@ -25,7 +27,8 @@ const router = express.Router();
 // Public routes
 router.post('/register', authLimiter, registerValidation, register);
 router.post('/login', authLimiter, loginValidation, login);
-router.post('/google', googleAuth);
+router.get('/google', authLimiter, googleAuth);
+router.get('/google/callback', googleCallback);
 router.get('/refresh-token', refreshToken);
 router.post('/logout', logout);
 

@@ -2,6 +2,7 @@ import User from '../models/user.model.js';
 import { generateTokens, verifyRefreshToken } from '../utils/jwt.util.js';
 import { ApiError, catchAsync, sendSuccessResponse } from '../utils/error.util.js';
 import config from '../config/config.js';
+import crypto from "crypto";
 
 /**
  * Register a new user
@@ -265,32 +266,107 @@ export const deleteAccount = catchAsync(async (req, res) => {
 });
 
 /**
- * Google authentication
- * @route POST /api/auth/google
+ * Google OAuth login
+ * @route GET /api/auth/google
  */
 
 export const googleAuth = catchAsync(async (req, res) => {
-    const {
-        email,
-        fullName,
-        avatar,
-        authProvider,
-    } = req.body;
+    const state = crypto.randomBytes(16).toString("hex");
 
-    let user = await User.findOne({ email });
+    res.cookie("oauth_state", state, {
+        httpOnly: true,
+        sameSite: "lax",
+    });
+
+    const url =
+        "https://accounts.google.com/o/oauth2/v2/auth?" +
+        new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            redirect_uri: process.env.GOOGLE_CALLBACK_URI,
+            response_type: "code",
+            scope: "openid email profile",
+            access_type: "offline",
+            state,
+            prompt: "consent",
+        });
+
+    res.redirect(url);
+});
+
+/**
+ * Google callback
+ * @route GET /api/auth/google/callback
+ */
+
+export const googleCallback = catchAsync(async (req, res) => {
+    const { code, state } = req.query;
+
+    if (state !== req.cookies.oauth_state) {
+        res.clearCookie("oauth_state");
+        throw new ApiError(400, "Invalid OAuth state");
+    }
+
+    if (!code) {
+        throw new ApiError(400, "No code provided");
+    }
+
+    // Exchange code for access token
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            code,
+            grant_type: "authorization_code",
+            redirect_uri: process.env.GOOGLE_CALLBACK_URI,
+        }),
+    });
+
+    const tokenData = await tokenRes.json();
+
+    if (!tokenRes.ok || !tokenData.access_token) {
+        throw new ApiError(400, "Failed to get access token from Google");
+    }
+
+    // Get user info
+    const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: {
+            Authorization: `Bearer ${tokenData.access_token}`,
+        },
+    });
+
+    const googleUser = await userRes.json();
+
+    if (!userRes.ok || !googleUser.email) {
+        throw new ApiError(400, "Failed to fetch Google user info");
+    }
+
+    let user = await User.findOne({ email: googleUser.email });
 
     if (!user) {
         user = await User.create({
-            fullName: fullName,
-            email,
-            avatar: avatar || '',
-            authProvider: authProvider,
+            fullName: googleUser.name,
+            email: googleUser.email,
+            avatar: googleUser.picture,
+            authProvider: "google",
         });
     }
 
+    user.refreshTokens = user.refreshTokens || [];
+
+    const { accessToken, refreshToken } = generateTokens(user);
+
+    const MAX_SESSIONS = 5;
+    if (user.refreshTokens.length >= MAX_SESSIONS) {
+        user.refreshTokens.shift();
+    }
+
+    user.refreshTokens.push({ token: refreshToken });
     await user.save();
 
-    sendSuccessResponse(res, {
-        user: user.toPublicJSON(),
-    }, 'Login successful');
+    res.cookie("refreshToken", refreshToken, config.cookieOptions);
+    res.clearCookie("oauth_state");
+
+    res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
 });
