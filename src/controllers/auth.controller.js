@@ -363,7 +363,11 @@ export const googleCallback = catchAsync(async (req, res) => {
     user.refreshTokens.push({ token: refreshToken });
     await user.save();
 
-    res.cookie("refreshToken", refreshToken, config.cookieOptions);
+    res.cookie("refreshToken", refreshToken, {
+        ...config.cookieOptions,
+        sameSite: 'none',
+        secure: true,
+    });
     res.clearCookie("oauth_state");
 
     res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
