@@ -18,7 +18,6 @@ import {
     loginValidation,
     updateProfileValidation,
     changePasswordValidation,
-    googleAuthValidation,
 } from '../middlewares/validation.middleware.js';
 import { authLimiter, passwordLimiter } from '../middlewares/rateLimiter.middleware.js';
 
