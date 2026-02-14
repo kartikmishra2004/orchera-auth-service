@@ -353,8 +353,6 @@ export const googleCallback = catchAsync(async (req, res) => {
         });
     }
 
-    user.refreshTokens = user.refreshTokens || [];
-
     const { accessToken, refreshToken } = generateTokens(user);
 
     const MAX_SESSIONS = 5;
