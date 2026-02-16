@@ -273,10 +273,7 @@ export const deleteAccount = catchAsync(async (req, res) => {
 export const googleAuth = catchAsync(async (req, res) => {
     const state = crypto.randomBytes(16).toString("hex");
 
-    res.cookie("oauth_state", state, {
-        httpOnly: true,
-        sameSite: "lax",
-    });
+    res.cookie("oauth_state", state, config.cookieOptions);
 
     const url =
         "https://accounts.google.com/o/oauth2/v2/auth?" +
